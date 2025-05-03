@@ -6,6 +6,11 @@ A modular `VoIP` ➞ `STT` ➞ `AI Agent` ➞ `TTS` ➞ `VoIP` implementation.
 
 Dialogue provides a framework and a set of interfaces for building VoIP Agent applications.
 
+### Features
+
+- Modular 
+- Talk over interruption of agent
+
 ## Installation
 
 ### Development Installation
