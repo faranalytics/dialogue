@@ -8,7 +8,8 @@ Dialogue provides a framework and a set of interfaces for building VoIP Agent ap
 
 ### Features
 
-- Modular
+- Modular framework
+- Event driven architecture
 - Facilities for multithreaded deployments
 - Talk over interruption of agent
 
