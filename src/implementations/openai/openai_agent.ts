@@ -4,6 +4,7 @@ import { log } from "../../commons/logger.js";
 import { OpenAI } from "openai";
 import { Metadata } from "../../commons/metadata.js";
 import { Agent, AgentEvents } from "../../interfaces/agent.js";
+import { SecondsTimer } from "../../commons/seconds_timer.js";
 
 export interface OpenAIAgentOptions {
   apiKey: string;
@@ -21,6 +22,7 @@ export class OpenAIAgent implements Agent {
   protected greeting: string;
   protected metadata?: Metadata;
   protected dispatches: Set<UUID>;
+  protected secondsTimer: SecondsTimer;
 
   constructor({ apiKey, system, greeting }: OpenAIAgentOptions) {
 
@@ -30,11 +32,14 @@ export class OpenAIAgent implements Agent {
     this.system = system;
     this.greeting = greeting;
     this.dispatches = new Set();
+    this.secondsTimer = new SecondsTimer();
   }
 
   public onTranscript = (transcript: string): void => {
     void (async () => {
       try {
+        this.secondsTimer.start();
+
         for (const uuid of this.dispatches) {
           this.emitter.emit("abort_transcript", uuid);
         }
@@ -62,6 +67,9 @@ export class OpenAIAgent implements Agent {
 
         log.notice(`Agent Message: ${agentMessage ?? ""}`);
 
+        if (this.secondsTimer.on) {
+          log.notice(`Agent time: ${this.secondsTimer.stop()}`);
+        }
         if (this.content !== content) {
           return;
         }

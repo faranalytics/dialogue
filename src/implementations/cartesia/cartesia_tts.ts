@@ -3,6 +3,7 @@ import { UUID } from "node:crypto";
 import { EventEmitter } from "node:events";
 import { log } from "../../commons/logger.js";
 import { TTS, TTSEvents } from "../../interfaces/tts.js";
+import { SecondsTimer } from "../../commons/seconds_timer.js";
 import * as ws from "ws";
 import { CartesiaChunk, CartesiaMessage } from "./types.js";
 
@@ -28,7 +29,8 @@ export class CartesiaTTS extends EventEmitter<CartesiaTTSEvents> implements TTS 
   protected timeout?: NodeJS.Timeout;
   protected uuid?: UUID;
   protected done: boolean;
-  protected start: boolean;
+  protected timing: boolean;
+  protected secondsTimer: SecondsTimer;
 
   constructor({ apiKey }: CartesiaTTSOptions) {
     super();
@@ -40,7 +42,8 @@ export class CartesiaTTS extends EventEmitter<CartesiaTTSEvents> implements TTS 
     this.audio = Buffer.alloc(0);
     this.emitter = new EventEmitter();
     this.done = false;
-    this.start = false;
+    this.timing = false;
+    this.secondsTimer = new SecondsTimer();
     this.outputFormat = {
       container: "raw",
       encoding: "pcm_mulaw",
@@ -92,6 +95,8 @@ export class CartesiaTTS extends EventEmitter<CartesiaTTSEvents> implements TTS 
       try {
         await this.mutex;
 
+        this.secondsTimer.start();
+
         this.uuid = uuid;
 
         if (this.aborts.has(uuid)) {
@@ -119,9 +124,8 @@ export class CartesiaTTS extends EventEmitter<CartesiaTTSEvents> implements TTS 
         log.info(JSON.stringify(transcript));
         const message = JSON.stringify({ ...options, ...{ transcript } });
         this.webSocket.send(message);
+        this.timing = false;
         this.done = false;
-        this.start = true;
-        this.timeout = setTimeout(this.onTime);
         await once(this.emitter, "transcript_dispatched");
       }
       catch (err) {
@@ -144,6 +148,9 @@ export class CartesiaTTS extends EventEmitter<CartesiaTTSEvents> implements TTS 
 
     if (message.type == "chunk") {
       this.audio = Buffer.concat([this.audio, Buffer.from((message as CartesiaChunk).data, "base64")]);
+      if (!this.timing) {
+        this.timeout = setTimeout(this.onTime);
+      }
     }
     else if (message.type == "done") {
       log.info(message);
@@ -165,18 +172,19 @@ export class CartesiaTTS extends EventEmitter<CartesiaTTSEvents> implements TTS 
           return;
         }
 
-        let audio;
-        if (this.start) {
-          audio = this.audio.subarray(0, 8000).toString("base64");
+        if (!this.timing) {
+          const audio = this.audio.subarray(0, 8000).toString("base64");
           this.audio = this.audio.subarray(8000);
-          this.start = false;
+          this.timing = true;
+          this.emitter.emit("audio_out", this.uuid, audio);
+          log.info("CartesiaTTs/onTime/emit/audio_out");
+          if (this.secondsTimer.on) {
+            log.notice(`Cartesia time: ${this.secondsTimer.stop()}`);
+          }
         }
         else {
-          audio = this.audio.subarray(0, 4000).toString("base64");
+          const audio = this.audio.subarray(0, 4000).toString("base64");
           this.audio = this.audio.subarray(4000);
-        }
-
-        if (audio) {
           this.emitter.emit("audio_out", this.uuid, audio);
           log.info("CartesiaTTs/onTime/emit/audio_out");
         }
