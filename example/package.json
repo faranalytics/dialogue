@@ -1,0 +1,35 @@
+{
+  "name": "test",
+  "version": "1.0.0",
+  "main": "./dist/main.js",
+  "scripts": {
+    "clean": "rm -rf ./dist/*",
+    "build": "tsc --build .",
+    "clean:build": "npm run clean && npm run build",
+    "tsc:watch": "tsc --watch",
+    "start:main": "node --env-file=.env ./dist/main.js",
+    "start:main_threading": "node --env-file=.env ./dist/main_threading.js",
+    "node:watch": "node --watch-path ./dist --watch-path ../dist --env-file=.env",
+    "node:watch:main": "npm run node:watch ./dist/main.js",
+    "node:watch:main_threading": "npm run node:watch ./dist/main_threading.js"
+  },
+  "engines": {
+    "npm": ">=10.8.2",
+    "node": ">=20.19.0"
+  },
+  "author": "",
+  "license": "MIT",
+  "description": "",
+  "devDependencies": {
+    "@eslint/js": "^9.23.0",
+    "@types/node": "^22.13.14",
+    "eslint": "^9.23.0",
+    "typescript": "^5.8.2",
+    "typescript-eslint": "^8.28.0"
+  },
+  "type": "module",
+  "dependencies": {
+    "@farar/dialogue": "..",
+    "port_agent": "^1.4.5"
+  }
+}
